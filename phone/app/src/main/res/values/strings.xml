@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">WristShutter</string>
+    <string name="a11y_label">WristShutter watch remote</string>
+    <string name="a11y_description">Lets your Garmin watch press the shutter, record and flip buttons in Samsung Camera. WristShutter only reads the Samsung Camera screen to find those buttons, and only acts when a command arrives from your watch or from a test button in the app. It does not collect, store or send any screen content.</string>
+</resources>

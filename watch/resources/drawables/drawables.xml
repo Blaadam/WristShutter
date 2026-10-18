@@ -1,0 +1,4 @@
+<drawables>
+    <!-- The launcher icon is required by the manifest. It is the only bitmap in the app. -->
+    <bitmap id="LauncherIcon" filename="launcher_icon.png"/>
+</drawables>

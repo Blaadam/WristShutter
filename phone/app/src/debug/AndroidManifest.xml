@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!--
+      Debug only: TETHERED mode makes the Connect IQ SDK open a local server socket for the
+      simulator (via adb forward). Without INTERNET the socket fails with EPERM and the SDK's
+      AdbConnection thread then crashes the whole process with an NPE.
+    -->
+    <uses-permission android:name="android.permission.INTERNET" />
+</manifest>

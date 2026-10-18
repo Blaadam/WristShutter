@@ -1,0 +1,24 @@
+# Android / Gradle
+phone/.gradle/
+phone/build/
+phone/app/build/
+phone/local.properties
+phone/.kotlin/
+*.apk
+*.aab
+
+# Connect IQ
+watch/bin/
+watch/gen/
+watch/.vscode/
+*.prg
+*.iq
+developer_key*
+*.der
+*.pem
+
+# IDE / OS
+.idea/
+*.iml
+.DS_Store
+Thumbs.db

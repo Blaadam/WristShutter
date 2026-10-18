@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<!--
+  App UUID is shared with the phone app: phone/app/src/main/java/com/wristshutter/Protocol.kt
+  (there it is written with dashes: c9c13a59-0bd5-4c29-b2e2-a003d8158db8).
+  minApiLevel 3.4.0: Devices/fr55/compiler.json (SDK 9.2.0) lists deviceGroup "API level 3.4",
+  with FR55 firmware reporting Connect IQ 3.4.2 to 3.4.6. Watch-app memory limit is 131072 bytes.
+-->
+<iq:manifest version="3" xmlns:iq="http://www.garmin.com/xml/connectiq">
+    <iq:application id="c9c13a590bd54c29b2e2a003d8158db8"
+                    type="watch-app"
+                    name="@Strings.AppName"
+                    entry="WristShutterApp"
+                    launcherIcon="@Drawables.LauncherIcon"
+                    minApiLevel="3.4.0">
+        <iq:products>
+            <iq:product id="fr55"/>
+        </iq:products>
+        <iq:permissions>
+            <iq:uses-permission id="Communications"/>
+        </iq:permissions>
+        <iq:languages>
+            <iq:language>eng</iq:language>
+        </iq:languages>
+        <iq:barrels/>
+    </iq:application>
+</iq:manifest>
