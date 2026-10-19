@@ -82,8 +82,10 @@ Both sides share one **app UUID**. Generate it once and store it in the watch `m
 **Watch to phone** (a Monkey C Dictionary, which arrives in the phone app as a Map):
 
 ```json
-{ "cmd": "shoot" | "video" | "flip" | "ping", "id": <int, increments per message> }
+{ "cmd": "shoot" | "video" | "flip" | "zoom" | "ping", "id": <int, increments per message> }
 ```
+
+`zoom` also carries `"level": "<lens factor as a string, e.g. \"0.6\" or \"3\">"` (added after Phase 4).
 
 **Phone to watch:**
 
@@ -91,11 +93,14 @@ Both sides share one **app UUID**. Generate it once and store it in the watch `m
 { "ack": <id>, "ok": true | false, "err": "<short reason or empty>" }
 ```
 
+Interim reply when the phone has to open Samsung Camera first (added after Phase 4): `{ "ack": <id>, "wait": true }`. The watch keeps waiting, up to 10 s, for the final ack.
+
 **Error codes:** these are short because the watch screen is tiny.
 - `NO_CAM`: Samsung Camera is not in the foreground
 - `NOT_FOUND`: the target button could not be located
 - `GESTURE_FAIL`: the button was found but the click or tap failed
 - `NO_A11Y`: the service is not running (best effort)
+- `BUSY`: the same command arrived again within 1 s and was ignored (added after Phase 4)
 
 ---
 

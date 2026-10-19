@@ -14,6 +14,7 @@ class MainView extends WatchUi.View {
     private var _text as String = "Connecting...";
     private var _color as Graphics.ColorType = Graphics.COLOR_WHITE;
     private var _digit as Number = 0;
+    private var _roundTripMs as Number = 0;
 
     function initialize() {
         View.initialize();
@@ -32,8 +33,10 @@ class MainView extends WatchUi.View {
         WatchUi.requestUpdate();
     }
 
-    function showCheck() as Void {
+    // [roundTripMs]: watch press to phone ack, shown under the check mark.
+    function showCheck(roundTripMs as Number) as Void {
         _mode = MODE_CHECK;
+        _roundTripMs = roundTripMs;
         WatchUi.requestUpdate();
     }
 
@@ -55,6 +58,9 @@ class MainView extends WatchUi.View {
             dc.drawLine(cx - 42, cy, cx - 12, cy + 30);
             dc.drawLine(cx - 12, cy + 30, cx + 44, cy - 32);
             dc.setPenWidth(1);
+            dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+            var secs = (_roundTripMs / 100).toFloat() / 10;
+            dc.drawText(cx, cy + 56, Graphics.FONT_TINY, secs.format("%.1f") + " s", Graphics.TEXT_JUSTIFY_CENTER);
         } else {
             dc.setColor(_color, Graphics.COLOR_TRANSPARENT);
             dc.drawText(cx, cy, Graphics.FONT_MEDIUM, _text, center);

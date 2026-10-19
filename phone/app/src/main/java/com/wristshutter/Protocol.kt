@@ -15,12 +15,17 @@ object Protocol {
     const val NOT_FOUND = "NOT_FOUND"
     const val GESTURE_FAIL = "GESTURE_FAIL"
     const val NO_A11Y = "NO_A11Y"
+
+    /** The same command repeated within a second; ignored so a double press can't undo itself. */
+    const val BUSY = "BUSY"
 }
 
 enum class Command(val wire: String) {
     SHOOT("shoot"),
     VIDEO("video"),
     FLIP("flip"),
+    /** Carries "level", the lens factor as shown on Samsung's zoom buttons (e.g. "0.6", "3"). */
+    ZOOM("zoom"),
     PING("ping");
 
     companion object {
@@ -28,9 +33,10 @@ enum class Command(val wire: String) {
     }
 }
 
-data class CommandResult(val ok: Boolean, val err: String = "") {
+/** [via] says which strategy pressed the button (e.g. "id stop_button", "desc 'Take picture'", "tap"). */
+data class CommandResult(val ok: Boolean, val err: String = "", val via: String = "") {
     companion object {
         val OK = CommandResult(true)
-        fun fail(err: String) = CommandResult(false, err)
+        fun fail(err: String, via: String = "") = CommandResult(false, err, via)
     }
 }

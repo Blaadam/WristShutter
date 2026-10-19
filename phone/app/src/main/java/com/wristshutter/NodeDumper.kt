@@ -22,6 +22,9 @@ object NodeDumper {
                 " text=${node.text?.let { "\"$it\"" } ?: "-"}" +
                 " desc=${node.contentDescription?.let { "\"$it\"" } ?: "-"}" +
                 " clickable=${node.isClickable}" +
+                (if (node.isSelected) " selected" else "") +
+                // e.g. the mode carousel is a SeekBar; its position identifies Photo/Video in any language
+                (node.rangeInfo?.let { " range=${it.current}/${it.min}..${it.max}" } ?: "") +
                 " bounds=${bounds.toShortString()}",
         )
         for (i in 0 until node.childCount) node.getChild(i)?.let { walk(it, depth + 1) }

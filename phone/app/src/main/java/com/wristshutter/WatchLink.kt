@@ -93,8 +93,13 @@ class WatchLink(
         }
     }
 
-    fun reply(device: IQDevice, id: Int, result: CommandResult) {
-        val msg = hashMapOf<String, Any>("ack" to id, "ok" to result.ok, "err" to result.err)
+    fun reply(device: IQDevice, id: Int, result: CommandResult) =
+        send(device, id, hashMapOf("ack" to id, "ok" to result.ok, "err" to result.err))
+
+    /** Interim ack: the command needs longer (camera cold start), so the watch should keep waiting. */
+    fun replyWait(device: IQDevice, id: Int) = send(device, id, hashMapOf("ack" to id, "wait" to true))
+
+    private fun send(device: IQDevice, id: Int, msg: HashMap<String, Any>) {
         try {
             ciq?.sendMessage(device, app, msg) { _, _, status ->
                 if (status != ConnectIQ.IQMessageStatus.SUCCESS) Log.w(TAG, "Ack $id failed: $status")

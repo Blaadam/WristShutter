@@ -10,13 +10,28 @@ FR55 watch app ──Connect IQ──▶ Garmin Connect ──▶ WristShutter (
 
 | Watch button | Action |
 |---|---|
-| START | Take a photo, after the countdown if one is set. Press START again to cancel the countdown. |
+| START | Take a photo, after the countdown if one is set. With burst on, takes 3 or 5 photos 2 s apart. Press START again to cancel. |
 | UP | Flip between the front and rear cameras |
 | DOWN | Start or stop video recording |
-| BACK | Cancel the countdown, or exit |
-| Hold UP | Settings: countdown of 0, 3 or 5 s |
+| BACK | Cancel the countdown or burst, or exit |
+| Hold UP | Settings: **Countdown** (Off, 3 or 5 s) and **Burst** (Off, 3 or 5 shots) change each time you select them. **Zoom** opens a list of lenses (0.6×, 1×, 2×, 3×, 5×, 10×) and sends the one you pick. |
 
-The watch shows the result: **✓** with one buzz means the phone did it. An error code with a double buzz means it failed (`NO_CAM`, `NOT_FOUND`, `GESTURE_FAIL`, `NO_A11Y`). **No reply** means no ack arrived within 4 s.
+Zoom presses Samsung Camera's lens buttons (`zoom_lens_text_button_main`) by the number in their label, so it works in any phone language. It needs the rear camera, because the front camera has no lens buttons.
+
+The watch shows the result: **✓** with one buzz means the phone did it. The number under the ✓ is the round trip, from the button press to the phone's ack. Red text with a double buzz means it failed:
+
+| Watch shows | Phone code | Meaning |
+|---|---|---|
+| Video mode? | `NOT_FOUND` on shoot | The camera is in Video mode, so there's no "Take picture" button |
+| Photo mode? | `NOT_FOUND` on video | The camera is in Photo mode, so there's no record button |
+| No button | `NOT_FOUND` on flip | The flip button wasn't found |
+| No zoom | `NOT_FOUND` on zoom | There's no lens button for that level (for example on the front camera) |
+| Open camera | `NO_CAM` | Samsung Camera isn't in the foreground |
+| Tap failed | `GESTURE_FAIL` | The button was found but the click was refused |
+| Too fast | `BUSY` | The same command arrived again within 1 s and was ignored |
+| No reply | (none) | No ack within 4 s |
+
+While a command waits for its ack, the watch ignores further button presses. A double press therefore can't stop a recording that just started.
 
 ---
 
@@ -80,7 +95,32 @@ cd phone
 gradlew.bat assembleDebug
 gradlew.bat installDebug
 ```
-On macOS or Linux, use `./gradlew installDebug`. Install over USB, or pair wireless debugging first with `adb pair` and `adb connect`. `gradlew.bat assembleRelease` builds a release APK signed with the debug key, which is fine for sideloading.
+On macOS or Linux, use `./gradlew installDebug`. Install over USB, or pair wireless debugging first with `adb pair` and `adb connect`.
+
+#### Release build (for everyday use)
+The release build leaves out the debug-only parts: the TETHERED switch and the `INTERNET` permission. Sign it with your own key, created once:
+
+```bat
+cd phone
+keytool -genkeypair -v -keystore wristshutter.jks -alias wristshutter -keyalg RSA -keysize 4096 -validity 10000
+```
+
+`keytool` comes with the JDK. Then create `phone\keystore.properties`:
+
+```properties
+storeFile=wristshutter.jks
+storePassword=<the password you chose>
+keyAlias=wristshutter
+keyPassword=<the password you chose>
+```
+
+Both files are gitignored. Back them up somewhere safe: an update only installs over the top if it's signed with the **same** key. Then build and install:
+
+```bat
+gradlew.bat installRelease
+```
+
+Without `keystore.properties`, release falls back to the debug key. Switching keys means Android won't update the installed app: uninstall it first, then redo **Allow restricted settings** and turn the accessibility service back on.
 
 Read the logs with:
 ```bat
@@ -146,6 +186,8 @@ The view IDs in Samsung Camera aren't documented and change between One UI versi
 
 The app tries the ID first, then the description, then the tap position. When a One UI update breaks something, repeat this section. You don't need to rebuild the app.
 
+**Without a PC:** the **Recent commands** list in WristShutter shows the last 20 commands from the watch or the test buttons. For each one it shows the result and which rule pressed the button (for example `id stop_button` or `desc 'Take picture'`). **Reset button settings to defaults** removes your edits. Only values that differ from the defaults are stored, so improved defaults in later app versions still apply.
+
 ---
 
 ## 5. Simulator ↔ phone testing (TETHERED)
@@ -177,7 +219,7 @@ Turn TETHERED off again before using the real watch.
 | Symptom | Check |
 |---|---|
 | Watch shows **No phone** at start | Garmin Connect is running and the watch is connected. In WristShutter, *Connect IQ SDK ready* is yes and *Watch connected* shows the FR55. The accessibility service is on. |
-| **No phone** even though Garmin Connect shows the watch connected and WristShutter says *Watch connected: yes* | The watch's Connect IQ messaging is stuck. This happened after a corrupted message crashed the phone app, and it then lasted through phone app reinstalls and a Garmin Connect restart. **Restart the watch** (hold LIGHT → Power Off). To confirm, run `adb shell dumpsys activity broadcasts history`: it shows no new `connectiq.INCOMING_MESSAGE` entries. |
+| **Restart watch?**, or **No phone** even though Garmin Connect shows the watch connected and WristShutter says *Watch connected: yes* | The watch's Connect IQ messaging is stuck. The watch shows "Restart watch?" after 3 sends in a row get no ack, counting across app launches. This happened after a corrupted message crashed the phone app, and it then lasted through phone app reinstalls and a Garmin Connect restart. **Restart the watch** (hold LIGHT → Power Off). To confirm, run `adb shell dumpsys activity broadcasts history`: it shows no new `connectiq.INCOMING_MESSAGE` entries. |
 | **No reply** | Battery settings (above). Run `adb logcat -s WristShutter` and look for `From <watch>: ...` lines. If there are none, the message never reached the app. |
 | `NO_CAM` with the camera open | Samsung Camera's package isn't `com.sec.android.app.camera` on this firmware. Check with `adb shell dumpsys window \| findstr mCurrentFocus`. |
 | `NOT_FOUND` | IDs or descriptions are wrong or missing. Redo section 4. |
@@ -197,8 +239,10 @@ Turn TETHERED off again before using the real watch.
 | Tethered ADB port | 7381 (default, settable from 1025 to 65535) | SDK 2.2.0 bytecode |
 | AGP / Gradle / Kotlin | 9.4.1 / 9.8.1 / 2.4.21 | Google Maven, services.gradle.org, Maven Central |
 | compileSdk / targetSdk | 37 (AGP 9.4's maximum) | AGP 9.4 release notes |
-| Samsung Camera package | `com.sec.android.app.camera` (v16.5.01.29) | `pm list packages` on the S26 Ultra |
-| Shutter / record button | `center_button_container`, the **same view** in both modes; desc "Take picture" (Photo) or "Start recording" (Video) | Node dump. The defaults match it by description only, because clicking it by ID would do the wrong action in the other mode. |
+| Samsung Camera package | `com.sec.android.app.camera`: v16.5.01.29 (One UI 8), then v17.0.00.43 (One UI 9, Android 17) | `pm list packages` on the S26 Ultra. All IDs below were unchanged by the One UI 9 update (2026-10-19). |
+| Shutter / record button | `center_button_container`, the **same view** in both modes; desc "Take picture" (Photo) or "Start recording" (Video) | Node dump. Clicking it by ID alone would do the wrong action in the other mode. |
+| Current mode | A layer named after the mode: `shooting_mode_photo_main` or `shooting_mode_video_main` | `uiautomator dump`, One UI 9. Built-in rule: shoot presses the center button only when the photo layer is present, and video only when the video layer is. This works in any language; the English descriptions are only a fallback. |
 | Flip button | `switch_camera_button`, desc "Switch to front camera" | Node dump |
+| Zoom buttons | `zoom_lens_text_button_main` (×7), desc "Zoom 0.6, Button" … "Zoom 100, Button" | `uiautomator dump`, One UI 9 |
 | Stop button while recording | `stop_button`, desc "Stop recording", a separate view that exists only while recording | Node dump. Start and stop from the watch were tested 2026-10-18. |
-| Background camera launch (§7.8) | not implemented, `NO_CAM` is returned | Verify on the device before adding it |
+| Background camera launch (§7.8) | Implemented behind the "Open Samsung Camera if it's closed" toggle (on by default). Shoot opens Photo mode, or the secure camera when the phone is locked; video opens Video mode. Screen off still returns `NO_CAM`. | **Allowed** on One UI 9 / Android 17: logcat shows `BAL_ALLOW_TOKEN` (2026-10-19). A cold start took about 5 s, longer than the watch's 4 s timeout, so the phone first sends an interim `wait` ack. The watch then shows "Opening camera" and waits up to 10 s. |

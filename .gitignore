@@ -6,6 +6,9 @@ phone/local.properties
 phone/.kotlin/
 *.apk
 *.aab
+phone/keystore.properties
+*.jks
+*.keystore
 
 # Connect IQ
 watch/bin/

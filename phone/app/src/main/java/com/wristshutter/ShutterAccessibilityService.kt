@@ -11,6 +11,9 @@ class ShutterAccessibilityService : AccessibilityService() {
     private lateinit var camera: CameraController
     private var link: WatchLink? = null
     private var lastDumpAt = 0L
+    private var lastCmd: Command? = null
+    private var lastLevel: String? = null
+    private var lastCmdAt = 0L
 
     override fun onServiceConnected() {
         super.onServiceConnected()
@@ -26,13 +29,39 @@ class ShutterAccessibilityService : AccessibilityService() {
         link = WatchLink(this, prefs.tethered) { device, msg ->
             val id = (msg["id"] as? Number)?.toInt() ?: return@WatchLink
             val cmd = Command.fromWire(msg["cmd"] as? String)
-            Log.i(TAG, "From ${device.friendlyName}: $cmd id=$id")
+            val level = msg["level"] as? String
+            Log.i(TAG, "From ${device.friendlyName}: $cmd id=$id" + (level?.let { " level=$it" } ?: ""))
             if (cmd == null) return@WatchLink
-            handleCommand(cmd) { result ->
+            val source = "watch #$id"
+            if (isRepeat(cmd, level)) {
+                Log.i(TAG, "$cmd id=$id ignored: repeat within ${REPEAT_WINDOW_MS} ms")
+                val busy = CommandResult.fail(Protocol.BUSY)
+                CommandLog.add(source, cmd, level, busy)
+                link?.reply(device, id, busy)
+                return@WatchLink
+            }
+            handleCommand(cmd, level, source, onLaunching = { link?.replyWait(device, id) }) { result ->
                 Log.i(TAG, "$cmd id=$id -> $result")
                 link?.reply(device, id, result)
             }
         }.also { it.start() }
+    }
+
+    /**
+     * The same camera command again within [REPEAT_WINDOW_MS]. Two VIDEO presses 0.1 s apart once
+     * started and stopped a recording instantly; the watch now blocks this too, but older watch
+     * builds or a restarted watch app might not.
+     */
+    private fun isRepeat(cmd: Command, level: String?): Boolean {
+        if (cmd == Command.PING) return false
+        val now = SystemClock.elapsedRealtime()
+        val repeat = cmd == lastCmd && level == lastLevel && now - lastCmdAt < REPEAT_WINDOW_MS
+        if (!repeat) {
+            lastCmd = cmd
+            lastLevel = level
+            lastCmdAt = now
+        }
+        return repeat
     }
 
     fun refreshDeviceStatus() {
@@ -40,9 +69,18 @@ class ShutterAccessibilityService : AccessibilityService() {
     }
 
     /** The one code path used by both watch commands and the in-app test buttons. */
-    fun handleCommand(cmd: Command, done: (CommandResult) -> Unit) {
+    fun handleCommand(
+        cmd: Command,
+        level: String?,
+        source: String,
+        onLaunching: () -> Unit = {},
+        done: (CommandResult) -> Unit,
+    ) {
         if (cmd == Command.PING) return done(CommandResult.OK)
-        camera.perform(cmd, done)
+        camera.perform(cmd, level, onLaunching) { result ->
+            CommandLog.add(source, cmd, level, result)
+            done(result)
+        }
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent) {
@@ -74,6 +112,8 @@ class ShutterAccessibilityService : AccessibilityService() {
     }
 
     companion object {
+        private const val REPEAT_WINDOW_MS = 1000L
+
         /** Non-null while the service is connected. Used by the settings screen. */
         @Volatile var instance: ShutterAccessibilityService? = null
             private set

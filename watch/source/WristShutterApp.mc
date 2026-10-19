@@ -15,7 +15,7 @@ class WristShutterApp extends Application.AppBase {
         var comms = new Comms(view);
         _comms = comms;
         Communications.registerForPhoneAppMessages(method(:onPhoneMessage));
-        comms.send("ping");
+        comms.send("ping", null);
         return [view, new MainDelegate(view, comms)];
     }
 

@@ -32,6 +32,7 @@ class MainActivity : Activity() {
     private lateinit var sdkStatus: TextView
     private lateinit var watchStatus: TextView
     private lateinit var batteryStatus: TextView
+    private lateinit var recentLog: TextView
 
     private val idFields = mutableMapOf<Command, EditText>()
     private val descFields = mutableMapOf<Command, EditText>()
@@ -69,6 +70,20 @@ class MainActivity : Activity() {
             col.button("Test ${cmd.wire}") { runTest(cmd) }
         }
 
+        col.header("Recent commands")
+        recentLog = TextView(this).apply {
+            typeface = android.graphics.Typeface.MONOSPACE
+            textSize = 12f
+        }
+        col.addView(recentLog)
+
+        col.header("Behaviour")
+        col.addView(Switch(this).apply {
+            text = "Open Samsung Camera if it's closed (shoot opens Photo, video opens Video)"
+            isChecked = prefs.launchCamera
+            setOnCheckedChangeListener { _, on -> prefs.launchCamera = on }
+        })
+
         col.header("Debug")
         col.addView(Switch(this).apply {
             text = "Dump camera UI to logcat (adb logcat -s WristShutter)"
@@ -99,6 +114,11 @@ class MainActivity : Activity() {
                 .apply { setText(point?.second?.toString().orEmpty()) }
         }
         col.button("Save button settings") { save() }
+        col.button("Reset button settings to defaults") {
+            prefs.resetButtons()
+            toast("Reset to defaults")
+            recreate()
+        }
     }
 
     override fun onResume() {
@@ -121,6 +141,7 @@ class MainActivity : Activity() {
         watchStatus.text = "Watch connected: " + if (watches.isEmpty()) "no" else watches.joinToString()
         val pm = getSystemService(PowerManager::class.java)
         batteryStatus.text = "Battery optimisation ignored: ${yesNo(pm.isIgnoringBatteryOptimizations(packageName))}"
+        recentLog.text = formatLog()
         // The SDK connects asynchronously, so keep polling while the screen is visible.
         handler.removeCallbacksAndMessages(null)
         handler.postDelayed(::refreshStatus, 2000)
@@ -141,7 +162,7 @@ class MainActivity : Activity() {
                 toast("${cmd.wire}: ${Protocol.NO_A11Y}")
                 return@postDelayed
             }
-            service.handleCommand(cmd) { result ->
+            service.handleCommand(cmd, null, "test") { result ->
                 toast("${cmd.wire}: " + if (result.ok) "OK" else result.err)
             }
         }, 3000)
@@ -158,6 +179,18 @@ class MainActivity : Activity() {
             )
         }
         toast("Saved")
+    }
+
+    private fun formatLog(): String {
+        val entries = CommandLog.recent()
+        if (entries.isEmpty()) return "No commands yet"
+        val time = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.getDefault())
+        return entries.joinToString("\n") { e ->
+            val outcome = if (e.result.ok) "OK" else e.result.err
+            val via = if (e.result.via.isNotEmpty()) "  ${e.result.via}" else ""
+            val what = e.cmd.wire + (e.level?.let { " ${it}x" } ?: "")
+            "${time.format(e.at)}  ${e.source.padEnd(9)} ${what.padEnd(5)} $outcome$via"
+        }
     }
 
     // Small view helpers
