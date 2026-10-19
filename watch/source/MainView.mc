@@ -15,6 +15,8 @@ class MainView extends WatchUi.View {
     private var _color as Graphics.ColorType = Graphics.COLOR_WHITE;
     private var _digit as Number = 0;
     private var _roundTripMs as Number = 0;
+    // During a countdown or burst, START and BACK cancel, and UP/DOWN are ignored.
+    private var _cancelable as Boolean = false;
 
     function initialize() {
         View.initialize();
@@ -40,6 +42,11 @@ class MainView extends WatchUi.View {
         WatchUi.requestUpdate();
     }
 
+    function setCancelable(cancelable as Boolean) as Void {
+        _cancelable = cancelable;
+        WatchUi.requestUpdate();
+    }
+
     function onUpdate(dc as Graphics.Dc) as Void {
         dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_BLACK);
         dc.clear();
@@ -60,10 +67,36 @@ class MainView extends WatchUi.View {
             dc.setPenWidth(1);
             dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
             var secs = (_roundTripMs / 100).toFloat() / 10;
-            dc.drawText(cx, cy + 56, Graphics.FONT_TINY, secs.format("%.1f") + " s", Graphics.TEXT_JUSTIFY_CENTER);
+            dc.drawText(cx, cy + 42, Graphics.FONT_TINY, secs.format("%.1f") + " s", Graphics.TEXT_JUSTIFY_CENTER);
         } else {
+            // Slightly above centre so it clears the Flip label at 9 o'clock.
             dc.setColor(_color, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(cx, cy, Graphics.FONT_MEDIUM, _text, center);
+            dc.drawText(cx, cy - 24, Graphics.FONT_MEDIUM, _text, center);
         }
+        drawButtonLabels(dc, cx, cy);
+    }
+
+    // Small labels beside each button. Positions follow the FR55's buttons in the SDK's
+    // simulator.json: START at 2 o'clock, BACK at 4, DOWN at 8, UP at 9.
+    private function drawButtonLabels(dc as Graphics.Dc, cx as Number, cy as Number) as Void {
+        var font = Graphics.FONT_XTINY;
+        var right = Graphics.TEXT_JUSTIFY_RIGHT | Graphics.TEXT_JUSTIFY_VCENTER;
+        var left = Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER;
+        var w = dc.getWidth();
+        var edge = w * 12 / 208; // inset from the round edge, scaled for other screen sizes
+        var dx = w * 86 / 208;   // horizontal offset of the 2/4/8 o'clock labels
+        var dy = w * 52 / 208;   // vertical offset of the 2/4/8 o'clock labels
+
+        dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
+        if (_cancelable) {
+            dc.drawText(cx + dx, cy - dy, font, "Cancel", right);
+            dc.drawText(cx + dx, cy + dy, font, "Cancel", right);
+            return;
+        }
+        dc.drawText(cx + dx, cy - dy, font, "Shoot", right);
+        dc.drawText(cx + dx, cy + dy, font, "Exit", right);
+        dc.drawText(cx - dx, cy + dy, font, "Video", left);
+        dc.drawText(edge, cy, font, "Flip", left);
+        dc.drawText(cx, w - edge - w * 14 / 208, font, "Hold UP: menu", Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
     }
 }

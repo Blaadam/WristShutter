@@ -39,6 +39,7 @@ class MainDelegate extends WatchUi.BehaviorDelegate {
             startShooting();
         } else {
             _remaining = secs;
+            updateLabels();
             _view.showCountdown(secs);
             Feedback.tick();
             _timer.start(method(:onTick), 1000, true);
@@ -62,6 +63,7 @@ class MainDelegate extends WatchUi.BehaviorDelegate {
     private function startShooting() as Void {
         _comms.send("shoot", null);
         _burstLeft = Settings.burst() - 1;
+        updateLabels();
         if (_burstLeft > 0) {
             _timer.start(method(:onBurstTick), BURST_INTERVAL_MS, true);
         }
@@ -76,6 +78,7 @@ class MainDelegate extends WatchUi.BehaviorDelegate {
         _burstLeft -= 1;
         if (_burstLeft <= 0) {
             _timer.stop();
+            updateLabels();
         }
     }
 
@@ -121,15 +124,22 @@ class MainDelegate extends WatchUi.BehaviorDelegate {
         return _remaining == 0 && _burstLeft == 0 && !_comms.isBusy();
     }
 
+    // Button labels read "Cancel" while a countdown or burst is running.
+    private function updateLabels() as Void {
+        _view.setCancelable(_remaining > 0 || _burstLeft > 0);
+    }
+
     private function cancelBurst() as Void {
         _timer.stop();
         _burstLeft = 0;
+        updateLabels();
         _view.showText("Cancelled", Graphics.COLOR_WHITE);
     }
 
     private function cancelCountdown() as Void {
         _timer.stop();
         _remaining = 0;
+        updateLabels();
         _view.showText("Cancelled", Graphics.COLOR_WHITE);
     }
 }
