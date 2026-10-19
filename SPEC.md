@@ -82,16 +82,20 @@ Both sides share one **app UUID**. Generate it once and store it in the watch `m
 **Watch to phone** (a Monkey C Dictionary, which arrives in the phone app as a Map):
 
 ```json
-{ "cmd": "shoot" | "video" | "flip" | "zoom" | "ping", "id": <int, increments per message> }
+{ "cmd": "shoot" | "mode" | "flip" | "zoom" | "ping", "id": <int, increments per message> }
 ```
+
+After Phase 4, `video` was replaced: `shoot` is one shutter (photo in Photo mode, start/stop recording in Video mode) and `mode` switches Photo <-> Video.
 
 `zoom` also carries `"level": "<lens factor as a string, e.g. \"0.6\" or \"3\">"` (added after Phase 4).
 
 **Phone to watch:**
 
 ```json
-{ "ack": <id>, "ok": true | false, "err": "<short reason or empty>" }
+{ "ack": <id>, "ok": true | false, "err": "<short reason or empty>", "mode": "photo" | "video" | "recording" | "" }
 ```
+
+`mode` (added after Phase 4) is the camera state the command left behind; "" means closed or another mode.
 
 Interim reply when the phone has to open Samsung Camera first (added after Phase 4): `{ "ack": <id>, "wait": true }`. The watch keeps waiting, up to 10 s, for the final ack.
 
@@ -101,6 +105,8 @@ Interim reply when the phone has to open Samsung Camera first (added after Phase
 - `GESTURE_FAIL`: the button was found but the click or tap failed
 - `NO_A11Y`: the service is not running (best effort)
 - `BUSY`: the same command arrived again within 1 s and was ignored (added after Phase 4)
+- `RECORDING`: mode can't switch while recording (added after Phase 4)
+- `MODE_FAIL`: the camera didn't reach the requested mode in time (added after Phase 4)
 
 ---
 

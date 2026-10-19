@@ -65,11 +65,15 @@ class Comms {
             return; // stale or unrelated
         }
         if (data["wait"] == true) {
-            // The phone is opening Samsung Camera first (a cold start takes about 5 s).
+            // The phone is opening Samsung Camera or switching its mode (a cold start takes ~5 s).
             _timer.stop();
             _timer.start(method(:onTimeout), LAUNCH_TIMEOUT_MS, false);
-            _view.showText("Opening camera", Graphics.COLOR_WHITE);
+            _view.showText(_pendingCmd.equals("mode") ? "Switching" : "Opening camera", Graphics.COLOR_WHITE);
             return;
+        }
+        var mode = data["mode"];
+        if (mode instanceof String) {
+            _view.setCameraMode(mode);
         }
         var cmd = _pendingCmd;
         var wasPing = clearPending();
@@ -105,16 +109,16 @@ class Comms {
     // Short, readable text for the phone's error codes (the screen is 208x208).
     private function errorText(cmd as String, err as String) as String {
         if (err.equals("NOT_FOUND")) {
-            // Shutter and record are one button whose meaning depends on the camera mode.
             if (cmd.equals("shoot")) {
-                return "Video mode?";
-            } else if (cmd.equals("video")) {
-                return "Photo mode?";
-            }
-            if (cmd.equals("zoom")) {
+                return "No shutter";
+            } else if (cmd.equals("zoom")) {
                 return "No zoom";
             }
             return "No button";
+        } else if (err.equals("RECORDING")) {
+            return "Recording";
+        } else if (err.equals("MODE_FAIL")) {
+            return "Mode failed";
         } else if (err.equals("NO_CAM")) {
             return "Open camera";
         } else if (err.equals("GESTURE_FAIL")) {

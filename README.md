@@ -10,11 +10,15 @@ FR55 watch app ──Connect IQ──▶ Garmin Connect ──▶ WristShutter (
 
 | Watch button | Action |
 |---|---|
-| START | Take a photo, after the countdown if one is set. With burst on, takes 3 or 5 photos 2 s apart. Press START again to cancel. |
+| START | The shutter. In Photo mode it takes a photo; in Video mode it starts recording, or stops it if already recording. Starting waits for the countdown if one is set; stopping is immediate. Burst (3 or 5 photos, 2 s apart) applies in Photo mode only. Press START again to cancel a countdown or burst. |
 | UP | Flip between the front and rear cameras |
-| DOWN | Start or stop video recording |
+| DOWN | Mode: switch the camera between Photo and Video. Not possible while recording. |
 | BACK | Cancel the countdown or burst, or exit |
 | Hold UP | Settings: **Countdown** (Off, 3 or 5 s) and **Burst** (Off, 3 or 5 shots) change each time you select them. **Zoom** opens a list of lenses (0.6×, 1×, 2×, 3×, 5×, 10×) and sends the one you pick. |
+
+The labels beside the buttons follow the camera: START reads **Shoot**, **Rec** or **Stop** (in red while recording), and DOWN reads **To video** or **To photo**. The phone reports the camera's mode in every reply, so the labels update after each command. If you change mode on the phone itself, they catch up at the next command.
+
+If Samsung Camera is closed, START and DOWN open it in **Photo mode**, the baseline. Switching mode works by re-sending Android's photo or video camera intent, which Samsung Camera follows while open; no button text is read, so it works in any phone language.
 
 Zoom presses Samsung Camera's lens buttons (`zoom_lens_text_button_main`) by the number in their label, so it works in any phone language. It needs the rear camera, because the front camera has no lens buttons.
 
@@ -22,8 +26,9 @@ The watch shows the result: **✓** with one buzz means the phone did it. The nu
 
 | Watch shows | Phone code | Meaning |
 |---|---|---|
-| Video mode? | `NOT_FOUND` on shoot | The camera is in Video mode, so there's no "Take picture" button |
-| Photo mode? | `NOT_FOUND` on video | The camera is in Photo mode, so there's no record button |
+| No shutter | `NOT_FOUND` on shoot | No shutter found: the camera is in a mode other than Photo or Video (e.g. Portrait), or the IDs changed |
+| Recording | `RECORDING` on mode | Stop recording before switching mode |
+| Mode failed | `MODE_FAIL` | The camera didn't reach the other mode within 8 s |
 | No button | `NOT_FOUND` on flip | The flip button wasn't found |
 | No zoom | `NOT_FOUND` on zoom | There's no lens button for that level (for example on the front camera) |
 | Open camera | `NO_CAM` | Samsung Camera isn't in the foreground |
@@ -181,7 +186,7 @@ The view IDs in Samsung Camera aren't documented and change between One UI versi
    Switch to Video mode and to the front camera so that every button you need appears in a dump.
 4. Find the shutter, record and flip buttons. Look for `clickable=true` nodes with a matching `desc` and plausible `bounds`.
 5. Paste the `id=` value (either the full ID or just the part after `:id/`) into **View IDs** for each command. If a button has no ID, put its `desc` text under **Content descriptions** instead. As a last resort, set **Fallback tap X/Y** as a percentage of the screen size, calculated from `bounds`.
-6. Tap **Save button settings**, then use **Test shoot / Test video / Test flip**. Each one runs 3 s later so you have time to switch to the camera.
+6. Tap **Save button settings**, then use **Test shoot / Test mode / Test flip**. Each one runs 3 s later so you have time to switch to the camera.
 7. Turn the dump back off.
 
 The app tries the ID first, then the description, then the tap position. When a One UI update breaks something, repeat this section. You don't need to rebuild the app.
@@ -241,8 +246,8 @@ Turn TETHERED off again before using the real watch.
 | compileSdk / targetSdk | 37 (AGP 9.4's maximum) | AGP 9.4 release notes |
 | Samsung Camera package | `com.sec.android.app.camera`: v16.5.01.29 (One UI 8), then v17.0.00.43 (One UI 9, Android 17) | `pm list packages` on the S26 Ultra. All IDs below were unchanged by the One UI 9 update (2026-10-19). |
 | Shutter / record button | `center_button_container`, the **same view** in both modes; desc "Take picture" (Photo) or "Start recording" (Video) | Node dump. Clicking it by ID alone would do the wrong action in the other mode. |
-| Current mode | A layer named after the mode: `shooting_mode_photo_main` or `shooting_mode_video_main` | `uiautomator dump`, One UI 9. Built-in rule: shoot presses the center button only when the photo layer is present, and video only when the video layer is. This works in any language; the English descriptions are only a fallback. |
+| Current mode | A layer named after the mode: `shooting_mode_photo_main` or `shooting_mode_video_main` | `uiautomator dump`, One UI 9. Built-in rule: shoot presses the center button when either layer is present (`stop_button` first while recording), and the mode reported to the watch comes from these IDs. This works in any language; the English descriptions are only a fallback. |
 | Flip button | `switch_camera_button`, desc "Switch to front camera" | Node dump |
 | Zoom buttons | `zoom_lens_text_button_main` (×7), desc "Zoom 0.6, Button" … "Zoom 100, Button" | `uiautomator dump`, One UI 9 |
 | Stop button while recording | `stop_button`, desc "Stop recording", a separate view that exists only while recording | Node dump. Start and stop from the watch were tested 2026-10-18. |
-| Background camera launch (§7.8) | Implemented behind the "Open Samsung Camera if it's closed" toggle (on by default). Shoot opens Photo mode, or the secure camera when the phone is locked; video opens Video mode. Screen off still returns `NO_CAM`. | **Allowed** on One UI 9 / Android 17: logcat shows `BAL_ALLOW_TOKEN` (2026-10-19). A cold start took about 5 s, longer than the watch's 4 s timeout, so the phone first sends an interim `wait` ack. The watch then shows "Opening camera" and waits up to 10 s. |
+| Background camera launch (§7.8) | Implemented behind the "Open Samsung Camera if it's closed" toggle (on by default). Shoot and mode open it in Photo mode, or the secure camera when the phone is locked. Mode switches by re-sending the photo/video camera intent while it's open. Screen off still returns `NO_CAM`. | **Allowed** on One UI 9 / Android 17: logcat shows `BAL_ALLOW_TOKEN` (2026-10-19). A cold start took about 5 s, longer than the watch's 4 s timeout, so the phone first sends an interim `wait` ack. The watch then shows "Opening camera" and waits up to 10 s. |

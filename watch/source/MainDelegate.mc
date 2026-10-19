@@ -21,7 +21,8 @@ class MainDelegate extends WatchUi.BehaviorDelegate {
         _timer = new Timer.Timer();
     }
 
-    // START: shoot, after the countdown if one is set. START again cancels a running countdown.
+    // START: the shutter (photo, or start/stop recording in Video mode), after the countdown if one
+    // is set. Stopping a recording is immediate. START again cancels a countdown or burst.
     function onSelect() as Boolean {
         if (_remaining > 0) {
             cancelCountdown();
@@ -35,7 +36,7 @@ class MainDelegate extends WatchUi.BehaviorDelegate {
             return true;
         }
         var secs = Settings.countdown();
-        if (secs <= 0) {
+        if (secs <= 0 || _view.cameraMode().equals("recording")) {
             startShooting();
         } else {
             _remaining = secs;
@@ -59,10 +60,12 @@ class MainDelegate extends WatchUi.BehaviorDelegate {
         }
     }
 
-    // First shot now; with burst on, the rest follow every BURST_INTERVAL_MS.
+    // First shot now; with burst on, the rest follow every BURST_INTERVAL_MS. Burst is for photos
+    // only: in Video mode it would start and stop recordings.
     private function startShooting() as Void {
+        var mode = _view.cameraMode();
         _comms.send("shoot", null);
-        _burstLeft = Settings.burst() - 1;
+        _burstLeft = (mode.equals("video") || mode.equals("recording")) ? 0 : Settings.burst() - 1;
         updateLabels();
         if (_burstLeft > 0) {
             _timer.start(method(:onBurstTick), BURST_INTERVAL_MS, true);
@@ -90,10 +93,10 @@ class MainDelegate extends WatchUi.BehaviorDelegate {
         return true;
     }
 
-    // DOWN
+    // DOWN: switch the camera between Photo and Video.
     function onNextPage() as Boolean {
         if (canSend()) {
-            _comms.send("video", null);
+            _comms.send("mode", null);
         }
         return true;
     }

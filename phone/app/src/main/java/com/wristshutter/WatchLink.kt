@@ -94,7 +94,7 @@ class WatchLink(
     }
 
     fun reply(device: IQDevice, id: Int, result: CommandResult) =
-        send(device, id, hashMapOf("ack" to id, "ok" to result.ok, "err" to result.err))
+        send(device, id, hashMapOf("ack" to id, "ok" to result.ok, "err" to result.err, "mode" to result.mode))
 
     /** Interim ack: the command needs longer (camera cold start), so the watch should keep waiting. */
     fun replyWait(device: IQDevice, id: Int) = send(device, id, hashMapOf("ack" to id, "wait" to true))

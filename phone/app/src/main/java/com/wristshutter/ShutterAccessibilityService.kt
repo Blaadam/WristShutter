@@ -35,7 +35,7 @@ class ShutterAccessibilityService : AccessibilityService() {
             val source = "watch #$id"
             if (isRepeat(cmd, level)) {
                 Log.i(TAG, "$cmd id=$id ignored: repeat within ${REPEAT_WINDOW_MS} ms")
-                val busy = CommandResult.fail(Protocol.BUSY)
+                val busy = CommandResult.fail(Protocol.BUSY, mode = camera.currentMode())
                 CommandLog.add(source, cmd, level, busy)
                 link?.reply(device, id, busy)
                 return@WatchLink
@@ -48,7 +48,7 @@ class ShutterAccessibilityService : AccessibilityService() {
     }
 
     /**
-     * The same camera command again within [REPEAT_WINDOW_MS]. Two VIDEO presses 0.1 s apart once
+     * The same camera command again within [REPEAT_WINDOW_MS]. Two record presses 0.1 s apart once
      * started and stopped a recording instantly; the watch now blocks this too, but older watch
      * builds or a restarted watch app might not.
      */
@@ -76,7 +76,8 @@ class ShutterAccessibilityService : AccessibilityService() {
         onLaunching: () -> Unit = {},
         done: (CommandResult) -> Unit,
     ) {
-        if (cmd == Command.PING) return done(CommandResult.OK)
+        // The ping ack tells the watch the camera's mode, so its labels are right from the start.
+        if (cmd == Command.PING) return done(CommandResult(true, mode = camera.currentMode()))
         camera.perform(cmd, level, onLaunching) { result ->
             CommandLog.add(source, cmd, level, result)
             done(result)

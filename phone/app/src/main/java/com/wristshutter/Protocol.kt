@@ -18,11 +18,28 @@ object Protocol {
 
     /** The same command repeated within a second; ignored so a double press can't undo itself. */
     const val BUSY = "BUSY"
+
+    /** Mode can't switch while recording (Samsung Camera blocks it too). */
+    const val RECORDING = "RECORDING"
+
+    /** The camera didn't reach the requested mode in time. */
+    const val MODE_FAIL = "MODE_FAIL"
+}
+
+/** Camera state reported to the watch in every ack ("mode"), read from view IDs. */
+object CameraMode {
+    const val PHOTO = "photo"
+    const val VIDEO = "video"
+    const val RECORDING = "recording"
+    /** Camera closed, or in a mode other than Photo/Video. */
+    const val UNKNOWN = ""
 }
 
 enum class Command(val wire: String) {
+    /** The shutter: a photo in Photo mode, start/stop recording in Video mode. */
     SHOOT("shoot"),
-    VIDEO("video"),
+    /** Switch Photo <-> Video. */
+    MODE("mode"),
     FLIP("flip"),
     /** Carries "level", the lens factor as shown on Samsung's zoom buttons (e.g. "0.6", "3"). */
     ZOOM("zoom"),
@@ -33,10 +50,13 @@ enum class Command(val wire: String) {
     }
 }
 
-/** [via] says which strategy pressed the button (e.g. "id stop_button", "desc 'Take picture'", "tap"). */
-data class CommandResult(val ok: Boolean, val err: String = "", val via: String = "") {
+/**
+ * [via] says which strategy pressed the button (e.g. "id stop_button", "desc 'Take picture'", "tap").
+ * [mode] is the [CameraMode] the command leaves behind.
+ */
+data class CommandResult(val ok: Boolean, val err: String = "", val via: String = "", val mode: String = "") {
     companion object {
         val OK = CommandResult(true)
-        fun fail(err: String, via: String = "") = CommandResult(false, err, via)
+        fun fail(err: String, via: String = "", mode: String = "") = CommandResult(false, err, via, mode)
     }
 }

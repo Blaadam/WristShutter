@@ -69,24 +69,22 @@ class Prefs(context: Context) {
     private fun lines(raw: String) = raw.lines().map { it.trim() }.filter { it.isNotEmpty() }
 
     companion object {
-        /** Commands the user can configure (ping needs no camera button). */
-        val CAMERA_COMMANDS = listOf(Command.SHOOT, Command.VIDEO, Command.FLIP)
+        /** Commands with configurable buttons (mode and zoom use built-in rules, ping needs none). */
+        val CAMERA_COMMANDS = listOf(Command.SHOOT, Command.FLIP)
 
-        // Defaults from the node dump on the S26 Ultra (Samsung Camera 16.5.01.29, English UI, 2026-10-18).
+        // Defaults from node dumps on the S26 Ultra (Samsung Camera 16.5 and 17.0, English UI).
         //
-        // The photo shutter and the video record button are the same view (center_button_container);
-        // only its description changes with the mode ("Take picture" vs "Start recording"). Clicking it
-        // by ID would take a photo when asked to record, or record when asked to shoot, so shoot and
-        // video match by description only and fail with NOT_FOUND in the wrong mode.
-        // While recording, Stop is a separate view (stop_button) that only exists then, so its ID is safe.
+        // Shoot is one shutter for both modes. While recording, Stop is a separate view (stop_button)
+        // that only exists then, so it comes first. Otherwise the built-in mode rule in
+        // CameraController presses center_button_container (take picture / start recording); the
+        // descriptions below are only an English fallback if that rule stops matching.
         private val DEFAULT_IDS = mapOf(
-            Command.VIDEO to listOf("stop_button"),
+            Command.SHOOT to listOf("stop_button"),
             Command.FLIP to listOf("switch_camera_button"),
         )
 
         private val DEFAULT_DESCRIPTIONS = mapOf(
-            Command.SHOOT to listOf("Take picture"),
-            Command.VIDEO to listOf("Start recording", "Stop recording"),
+            Command.SHOOT to listOf("Take picture", "Start recording", "Stop recording"),
             Command.FLIP to listOf("Switch to front camera", "Switch to rear camera"),
         )
     }

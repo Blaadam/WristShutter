@@ -17,6 +17,8 @@ class MainView extends WatchUi.View {
     private var _roundTripMs as Number = 0;
     // During a countdown or burst, START and BACK cancel, and UP/DOWN are ignored.
     private var _cancelable as Boolean = false;
+    // The phone camera's mode from the last ack: "photo", "video", "recording" or "" (unknown).
+    private var _cameraMode as String = "";
 
     function initialize() {
         View.initialize();
@@ -39,6 +41,15 @@ class MainView extends WatchUi.View {
     function showCheck(roundTripMs as Number) as Void {
         _mode = MODE_CHECK;
         _roundTripMs = roundTripMs;
+        WatchUi.requestUpdate();
+    }
+
+    function cameraMode() as String {
+        return _cameraMode;
+    }
+
+    function setCameraMode(mode as String) as Void {
+        _cameraMode = mode;
         WatchUi.requestUpdate();
     }
 
@@ -93,10 +104,26 @@ class MainView extends WatchUi.View {
             dc.drawText(cx + dx, cy + dy, font, "Cancel", right);
             return;
         }
-        dc.drawText(cx + dx, cy - dy, font, "Shoot", right);
+        // START is one shutter whose meaning follows the camera mode; DOWN switches Photo/Video.
+        var shutter = "Shoot";
+        var mode = "Mode";
+        if (_cameraMode.equals("video")) {
+            shutter = "Rec";
+            mode = "To photo";
+        } else if (_cameraMode.equals("recording")) {
+            shutter = "Stop";
+            mode = ""; // can't switch while recording
+        } else if (_cameraMode.equals("photo")) {
+            mode = "To video";
+        }
         dc.drawText(cx + dx, cy + dy, font, "Exit", right);
-        dc.drawText(cx - dx, cy + dy, font, "Video", left);
+        dc.drawText(cx - dx, cy + dy, font, mode, left);
         dc.drawText(edge, cy, font, "Flip", left);
+        if (_cameraMode.equals("recording")) {
+            dc.setColor(Graphics.COLOR_RED, Graphics.COLOR_TRANSPARENT);
+        }
+        dc.drawText(cx + dx, cy - dy, font, shutter, right);
+        dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
         dc.drawText(cx, w - edge - w * 14 / 208, font, "Hold UP: menu", Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
     }
 }

@@ -66,7 +66,7 @@ class MainActivity : Activity() {
         }
 
         col.header("Test (runs after 3 s, switch to the camera)")
-        for (cmd in Prefs.CAMERA_COMMANDS) {
+        for (cmd in listOf(Command.SHOOT, Command.MODE, Command.FLIP)) {
             col.button("Test ${cmd.wire}") { runTest(cmd) }
         }
 
@@ -79,7 +79,7 @@ class MainActivity : Activity() {
 
         col.header("Behaviour")
         col.addView(Switch(this).apply {
-            text = "Open Samsung Camera if it's closed (shoot opens Photo, video opens Video)"
+            text = "Open Samsung Camera in Photo mode if it's closed (shoot and mode)"
             isChecked = prefs.launchCamera
             setOnCheckedChangeListener { _, on -> prefs.launchCamera = on }
         })
@@ -163,7 +163,8 @@ class MainActivity : Activity() {
                 return@postDelayed
             }
             service.handleCommand(cmd, null, "test") { result ->
-                toast("${cmd.wire}: " + if (result.ok) "OK" else result.err)
+                toast("${cmd.wire}: " + (if (result.ok) "OK" else result.err) +
+                    if (result.mode.isNotEmpty()) " (${result.mode})" else "")
             }
         }, 3000)
     }
